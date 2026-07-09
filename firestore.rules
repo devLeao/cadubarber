@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email in [
+        'leandrofls16@gmail.com',
+        'cadubarber99@gmail.com',
+        'caduroyale190@gmail.com'
+      ];
+    }
+
+    match /agendamentos/{id} {
+      // Logado consegue ver os agendamentos (necessário pra mostrar horários ocupados)
+      allow read: if request.auth != null;
+
+      // Só pode criar agendamento em nome de si mesmo
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+
+      // Só o dono do agendamento ou um admin pode alterar/cancelar/bloquear
+      allow update, delete: if isAdmin()
+                    || (request.auth != null && resource.data.userId == request.auth.uid);
+    }
+
+    match /blacklists/{id} {
+      // Admin lê tudo; cliente só consegue ler o próprio registro (usado pra checar se ele está bloqueado)
+      allow read: if isAdmin()
+                    || (request.auth != null && resource.data.email == request.auth.token.email);
+      allow write: if isAdmin();
+    }
+
+    // Qualquer coisa que não foi listada acima fica bloqueada por padrão
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
