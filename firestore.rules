@@ -15,9 +15,11 @@ service cloud.firestore {
       // Logado consegue ver os agendamentos (necessário pra mostrar horários ocupados)
       allow read: if request.auth != null;
 
-      // Só pode criar agendamento em nome de si mesmo
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
+      // Cliente só pode criar agendamento em nome de si mesmo;
+      // admin pode criar qualquer registro (ex: bloqueio de horário/dia,
+      // que não tem userId por não ser um agendamento de cliente)
+      allow create: if isAdmin()
+                    || (request.auth != null && request.resource.data.userId == request.auth.uid);
 
       // Só o dono do agendamento ou um admin pode alterar/cancelar/bloquear
       allow update, delete: if isAdmin()
